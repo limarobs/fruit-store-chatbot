@@ -41,3 +41,11 @@ Rodar testes:
 cd backend
 pytest
 ```
+
+## Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
