@@ -34,3 +34,10 @@ Content-Type: application/json
   "question": "Tem quantas macas?"
 }
 ```
+
+Rodar testes:
+
+```bash
+cd backend
+pytest
+```
