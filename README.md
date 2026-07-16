@@ -17,3 +17,9 @@ Health check:
 ```bash
 GET http://localhost:8000/health
 ```
+
+Listar estoque:
+
+```bash
+GET http://localhost:8000/products
+```
