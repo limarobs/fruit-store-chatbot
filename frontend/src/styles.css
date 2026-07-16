@@ -21,6 +21,16 @@ input {
   font: inherit;
 }
 
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
 .app-shell {
   align-items: center;
   display: flex;
@@ -54,4 +64,95 @@ h1 {
   line-height: 1.6;
   margin: 24px 0 0;
   max-width: 560px;
+}
+
+.chat-form {
+  margin-top: 36px;
+  max-width: 640px;
+}
+
+.chat-form label {
+  color: #304433;
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.input-row {
+  display: flex;
+  gap: 12px;
+}
+
+.input-row input {
+  background: #fffaf0;
+  border: 1px solid #d8cfbd;
+  border-radius: 8px;
+  color: #243026;
+  flex: 1;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.input-row input:focus {
+  border-color: #e35335;
+  outline: 3px solid rgba(227, 83, 53, 0.16);
+}
+
+.input-row button {
+  background: #e35335;
+  border-radius: 8px;
+  color: #fffaf0;
+  font-weight: 800;
+  padding: 0 20px;
+}
+
+.feedback {
+  font-weight: 700;
+  margin: 18px 0 0;
+}
+
+.error {
+  color: #b3341f;
+}
+
+.answer-panel {
+  background: #fffaf0;
+  border: 1px solid #d8cfbd;
+  border-radius: 8px;
+  margin-top: 24px;
+  max-width: 640px;
+  padding: 20px;
+}
+
+.answer-panel span {
+  color: #68745e;
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.answer-panel p {
+  color: #18291d;
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1.4;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .app-shell {
+    align-items: flex-start;
+    padding: 28px 20px;
+  }
+
+  .input-row {
+    flex-direction: column;
+  }
+
+  .input-row button {
+    min-height: 48px;
+  }
 }

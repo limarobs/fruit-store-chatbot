@@ -49,3 +49,5 @@ cd frontend
 npm install
 npm run dev
 ```
+
+Com o backend rodando em `http://localhost:8000`, o frontend usa proxy do Vite para chamar `POST /api/chat`.
