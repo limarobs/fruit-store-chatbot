@@ -1,8 +1,20 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
 from app.database import init_db, list_products
+from app.services.chat import answer_inventory_question
+
+
+class ChatRequest(BaseModel):
+    question: str = Field(..., min_length=1, examples=["Tem quantas macas?"])
+
+
+class ChatResponse(BaseModel):
+    answer: str
+    product: str | None
+    quantity: int | None
 
 
 @asynccontextmanager
@@ -26,3 +38,8 @@ def health_check() -> dict[str, str]:
 @app.get("/products")
 def get_products() -> list[dict[str, int | str]]:
     return list_products()
+
+
+@app.post("/chat")
+def chat(request: ChatRequest) -> ChatResponse:
+    return ChatResponse(**answer_inventory_question(request.question))

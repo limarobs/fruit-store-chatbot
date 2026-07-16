@@ -50,3 +50,20 @@ def list_products() -> list[dict[str, int | str]]:
         ).fetchall()
 
     return [dict(row) for row in rows]
+
+
+def find_product_by_slug(slug: str) -> dict[str, int | str] | None:
+    with get_connection() as connection:
+        row = connection.execute(
+            """
+            SELECT slug, name, quantity
+            FROM products
+            WHERE slug = ?
+            """,
+            (slug,),
+        ).fetchone()
+
+    if row is None:
+        return None
+
+    return dict(row)

@@ -23,3 +23,14 @@ Listar estoque:
 ```bash
 GET http://localhost:8000/products
 ```
+
+Perguntar ao chatbot:
+
+```bash
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+  "question": "Tem quantas macas?"
+}
+```
