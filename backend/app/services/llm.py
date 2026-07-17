@@ -10,11 +10,10 @@ load_dotenv()
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
-OLLAMA_ENABLED = os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
 
 
 def extract_product_with_llm(question: str, available_slugs: list[str]) -> str | None:
-    if not OLLAMA_ENABLED:
+    if not is_ollama_enabled():
         return None
 
     prompt = build_prompt(question, available_slugs)
@@ -47,6 +46,13 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
         return product[:-1]
 
     return None
+
+
+def is_ollama_enabled() -> bool:
+    return (
+        os.getenv("OLLAMA_ENABLED", "false").lower() == "true"
+        and "PYTEST_CURRENT_TEST" not in os.environ
+    )
 
 
 def build_prompt(question: str, available_slugs: list[str]) -> str:

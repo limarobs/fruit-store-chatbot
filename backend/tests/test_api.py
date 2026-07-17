@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-# tstes de integraÃ§Ã£o da API usando TestClient do FastAPI
+# testes de integracao da API usando TestClient do FastAPI
 def test_products_route_lists_seeded_inventory():
     with TestClient(app) as client:
         response = client.get("/products")
@@ -15,8 +15,7 @@ def test_products_route_lists_seeded_inventory():
     assert {"slug": "maca", "name": "Maca", "quantity": 42} in products
 
 
-
-# verifica se a rota /chat responde corretamente a uma pergunta sobre estoque
+# verifica se /chat responde corretamente a uma pergunta sobre estoque
 def test_chat_route_answers_inventory_question_with_accent():
     with TestClient(app) as client:
         response = client.post("/chat", json={"question": "Tem quantas maçãs?"})
@@ -28,3 +27,19 @@ def test_chat_route_answers_inventory_question_with_accent():
         "quantity": 42,
         "interpreter": "fallback",
     }
+
+
+def test_chat_route_handles_unknown_product():
+    with TestClient(app) as client:
+        response = client.post("/chat", json={"question": "Tem manga?"})
+
+    assert response.status_code == 200
+    assert response.json()["product"] is None
+    assert response.json()["quantity"] is None
+
+
+def test_chat_route_rejects_empty_question():
+    with TestClient(app) as client:
+        response = client.post("/chat", json={"question": ""})
+
+    assert response.status_code == 422
