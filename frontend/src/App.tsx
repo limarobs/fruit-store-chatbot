@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type ChatResponse = {
   answer: string;
@@ -7,11 +7,30 @@ type ChatResponse = {
   interpreter: "llm" | "fallback";
 };
 
+type Message = {
+  id: number;
+  role: "user" | "assistant";
+  text: string;
+  interpreter?: ChatResponse["interpreter"];
+};
+
 function App() {
-  const [question, setQuestion] = useState("Tem quantas macas?");
-  const [response, setResponse] = useState<ChatResponse | null>(null);
+  const [question, setQuestion] = useState("");
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: 1,
+      role: "assistant",
+      text: "Oi! Pergunte sobre maca, banana, laranja, uva ou abacaxi.",
+      interpreter: "fallback",
+    },
+  ]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -21,9 +40,20 @@ function App() {
       return;
     }
 
+    const currentQuestion = question.trim();
+    const userMessageId = Date.now();
+
+    setMessages((currentMessages) => [
+      ...currentMessages,
+      {
+        id: userMessageId,
+        role: "user",
+        text: currentQuestion,
+      },
+    ]);
+    setQuestion("");
     setIsLoading(true);
     setError("");
-    setResponse(null);
 
     try {
       const request = await fetch("/api/chat", {
@@ -31,7 +61,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question: currentQuestion }),
       });
 
       if (!request.ok) {
@@ -39,7 +69,15 @@ function App() {
       }
 
       const data = (await request.json()) as ChatResponse;
-      setResponse(data);
+      setMessages((currentMessages) => [
+        ...currentMessages,
+        {
+          id: userMessageId + 1,
+          role: "assistant",
+          text: data.answer,
+          interpreter: data.interpreter,
+        },
+      ]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -56,6 +94,34 @@ function App() {
           Pergunte pela quantidade disponivel de maca, banana, laranja, uva ou
           abacaxi.
         </p>
+
+        <section className="chat-window" aria-live="polite">
+          {messages.map((message) => (
+            <article
+              className={`message-bubble ${message.role}`}
+              key={message.id}
+            >
+              <span>{message.role === "user" ? "Voce" : "Assistente"}</span>
+              <p>{message.text}</p>
+              {message.role === "assistant" && message.interpreter ? (
+                <strong>
+                  {message.interpreter === "llm"
+                    ? "LLM local"
+                    : "Fallback local"}
+                </strong>
+              ) : null}
+            </article>
+          ))}
+
+          {isLoading ? (
+            <article className="message-bubble assistant">
+              <span>Assistente</span>
+              <p>Consultando estoque...</p>
+            </article>
+          ) : null}
+
+          <div ref={chatEndRef} />
+        </section>
 
         <form className="chat-form" onSubmit={handleSubmit}>
           <label htmlFor="question">Pergunta</label>
@@ -74,18 +140,6 @@ function App() {
         </form>
 
         {error ? <p className="feedback error">{error}</p> : null}
-
-        {response ? (
-          <section className="answer-panel" aria-live="polite">
-            <div className="answer-header">
-              <span>Resposta</span>
-              <strong>
-                {response.interpreter === "llm" ? "LLM local" : "Fallback local"}
-              </strong>
-            </div>
-            <p>{response.answer}</p>
-          </section>
-        ) : null}
       </section>
     </main>
   );
