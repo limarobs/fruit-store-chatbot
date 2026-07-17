@@ -20,6 +20,8 @@ build/
 # Environment files
 .env
 .env.*
+!.env.example
+!backend/.env.example
 
 # OS / editor
 .DS_Store
