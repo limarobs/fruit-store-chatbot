@@ -55,7 +55,7 @@ http://localhost:5173
 
 ## LLM local
 
-O projeto nao usa OpenAI. A LLM local e opcional e roda via Ollama.
+O LLM local e opcional e roda via Ollama.
 
 Instale o modelo recomendado:
 
@@ -123,5 +123,5 @@ React/Vite -> FastAPI /chat -> interpretador LLM local ou fallback
                               -> resposta com quantidade real do banco
 ```
 
-A LLM nao inventa quantidades. Ela apenas tenta identificar o produto citado na
+A LLM tenta identificar o produto citado na
 pergunta; a quantidade sempre vem do banco local.
