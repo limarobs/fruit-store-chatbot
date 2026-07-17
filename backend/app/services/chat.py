@@ -2,6 +2,7 @@ import re
 import unicodedata
 
 from app.database import find_product_by_slug
+from app.services.llm import extract_product_with_llm
 
 ALIASES = {
     "abacaxis": "abacaxi",
@@ -18,13 +19,16 @@ ALIASES = {
 
 
 def answer_inventory_question(question: str) -> dict[str, str | int | None]:
-    slug = extract_product_slug(question)
+    llm_slug = extract_product_with_llm(question, list(ALIASES.values()))
+    slug = llm_slug or extract_product_slug(question)
+    interpreter = "llm" if llm_slug else "fallback"
 
     if slug is None:
         return {
             "answer": "Nao encontrei essa fruta no estoque. Tente perguntar por maca, banana, laranja, uva ou abacaxi.",
             "product": None,
             "quantity": None,
+            "interpreter": interpreter,
         }
 
     product = find_product_by_slug(slug)
@@ -34,6 +38,7 @@ def answer_inventory_question(question: str) -> dict[str, str | int | None]:
             "answer": "Essa fruta nao esta cadastrada no estoque.",
             "product": slug,
             "quantity": None,
+            "interpreter": interpreter,
         }
 
     quantity = int(product["quantity"])
@@ -43,6 +48,7 @@ def answer_inventory_question(question: str) -> dict[str, str | int | None]:
         "answer": f"Temos {quantity} unidades de {name.lower()} em estoque.",
         "product": name,
         "quantity": quantity,
+        "interpreter": interpreter,
     }
 
 

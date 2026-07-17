@@ -125,13 +125,27 @@ h1 {
   padding: 20px;
 }
 
-.answer-panel span {
+.answer-header {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.answer-header span {
   color: #68745e;
-  display: block;
   font-size: 0.8rem;
   font-weight: 800;
-  margin-bottom: 8px;
   text-transform: uppercase;
+}
+
+.answer-header strong {
+  background: #e8f0df;
+  border-radius: 999px;
+  color: #304433;
+  font-size: 0.78rem;
+  padding: 6px 10px;
 }
 
 .answer-panel p {

@@ -15,6 +15,7 @@ class ChatResponse(BaseModel):
     answer: str
     product: str | None
     quantity: int | None
+    interpreter: str
 
 
 @asynccontextmanager

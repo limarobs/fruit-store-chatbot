@@ -35,6 +35,19 @@ Content-Type: application/json
 }
 ```
 
+### LLM local opcional
+
+Para usar uma LLM local com Ollama:
+
+```bash
+ollama pull llama3.2
+uvicorn app.main:app --reload
+```
+
+As configuracoes ficam em `backend/.env`. Use `backend/.env.example` como referencia.
+
+Se o Ollama estiver desligado ou indisponivel, a API continua usando o fallback local.
+
 Rodar testes:
 
 ```bash

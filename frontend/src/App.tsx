@@ -4,6 +4,7 @@ type ChatResponse = {
   answer: string;
   product: string | null;
   quantity: number | null;
+  interpreter: "llm" | "fallback";
 };
 
 function App() {
@@ -76,7 +77,12 @@ function App() {
 
         {response ? (
           <section className="answer-panel" aria-live="polite">
-            <span>Resposta</span>
+            <div className="answer-header">
+              <span>Resposta</span>
+              <strong>
+                {response.interpreter === "llm" ? "LLM local" : "Fallback local"}
+              </strong>
+            </div>
             <p>{response.answer}</p>
           </section>
         ) : null}

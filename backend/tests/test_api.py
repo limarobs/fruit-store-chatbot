@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 
 
-# tstes de integração da API usando TestClient do FastAPI
+# tstes de integraÃ§Ã£o da API usando TestClient do FastAPI
 def test_products_route_lists_seeded_inventory():
     with TestClient(app) as client:
         response = client.get("/products")
@@ -26,4 +26,5 @@ def test_chat_route_answers_inventory_question_with_accent():
         "answer": "Temos 42 unidades de maca em estoque.",
         "product": "Maca",
         "quantity": 42,
+        "interpreter": "fallback",
     }
