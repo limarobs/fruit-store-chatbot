@@ -13,6 +13,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    intent: str
     product: str | None
     quantity: int | None
     interpreter: str

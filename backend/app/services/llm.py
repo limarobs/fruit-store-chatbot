@@ -14,15 +14,33 @@ logger = logging.getLogger(__name__)
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
 
+VALID_INTENTS = {
+    "quantity",
+    "price",
+    "cheapest",
+    "expensive",
+    "low_stock",
+    "total",
+    "list",
+}
 
-def extract_product_with_llm(question: str, available_slugs: list[str]) -> str | None:
+_NULL_LIKE = ("", "null", "none", "nenhum", "nenhuma")
+
+
+def interpret_question_with_llm(
+    question: str, available_slugs: list[str]
+) -> dict[str, object] | None:
+    """Extrai {"intent": str, "products": [slug, ...]} da pergunta via LLM.
+
+    Retorna None quando a LLM esta desligada, indisponivel ou responde de
+    forma que nao da para interpretar - nesses casos o chamador usa o
+    fallback local. A consulta real ao estoque continua sendo feita no banco.
+    """
     if not is_ollama_enabled():
         return None
 
     prompt = build_prompt(question, available_slugs)
 
-    # Usa a LLM local apenas para extrair a fruta da pergunta.
-    # A consulta real ao estoque continua sendo feita no banco SQLite.
     try:
         response = httpx.post(
             f"{OLLAMA_URL}/api/generate",
@@ -46,20 +64,13 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
         logger.warning("LLM indisponivel, usando fallback local: %s", error)
         return None
 
-    product = normalize_product(content.get("product"))
-
-    # O modelo as vezes devolve a string "null"/"none" em vez de JSON null.
-    if product in ("", "null", "none", "nenhum", "nenhuma"):
+    intent = normalize_intent(content.get("intent"))
+    if intent not in VALID_INTENTS:
+        logger.info("LLM devolveu intent invalido: %r", content.get("intent"))
         return None
 
-    if product in available_slugs:
-        return product
-
-    if product.endswith("s") and product[:-1] in available_slugs:
-        return product[:-1]
-
-    logger.info("LLM devolveu produto fora do catalogo: %r", product)
-    return None
+    products = resolve_products(content.get("products"), available_slugs)
+    return {"intent": intent, "products": products}
 
 
 def is_ollama_enabled() -> bool:
@@ -73,28 +84,79 @@ def build_prompt(question: str, available_slugs: list[str]) -> str:
     options = ", ".join(available_slugs)
 
     return f"""
-Voce identifica qual fruta aparece em uma pergunta de estoque.
-Responda SOMENTE com JSON no formato {{"product": "<fruta>"}} ou {{"product": null}}.
-A fruta deve ser exatamente uma destas, sempre no singular: {options}.
+Voce interpreta perguntas sobre o estoque de uma loja de frutas.
+Responda SOMENTE com JSON no formato {{"intent": "<intent>", "products": ["<fruta>", ...]}}.
+
+Os intents possiveis sao:
+- "quantity": quantas unidades de uma ou mais frutas existem.
+- "price": qual o preco de uma fruta.
+- "cheapest": qual a fruta mais barata.
+- "expensive": qual a fruta mais cara.
+- "low_stock": quais frutas estao acabando ou com pouco estoque.
+- "total": quantidade total de frutas ou quantos tipos existem.
+- "list": quais frutas a loja tem.
+
+As frutas devem ser exatamente uma destas, sempre no singular: {options}.
 Converta plural para singular (ex.: "bananas" -> "banana", "macas" -> "maca").
-Se nenhuma fruta da lista aparecer, use o valor JSON null (sem aspas).
+Em "products" liste as frutas citadas; use [] quando o intent nao precisa de
+fruta ou quando nenhuma fruta da lista for citada.
 
 Exemplos:
-Pergunta: Tem quantas bananas? -> {{"product": "banana"}}
-Pergunta: Quantas laranjas tem no estoque? -> {{"product": "laranja"}}
-Pergunta: uva -> {{"product": "uva"}}
-Pergunta: Tem quantas mangas? -> {{"product": null}}
+Pergunta: Tem quantas bananas? -> {{"intent": "quantity", "products": ["banana"]}}
+Pergunta: Tem maca e uva? -> {{"intent": "quantity", "products": ["maca", "uva"]}}
+Pergunta: Quanto custa a laranja? -> {{"intent": "price", "products": ["laranja"]}}
+Pergunta: Qual a fruta mais barata? -> {{"intent": "cheapest", "products": []}}
+Pergunta: Qual a mais cara? -> {{"intent": "expensive", "products": []}}
+Pergunta: Quais frutas estao acabando? -> {{"intent": "low_stock", "products": []}}
+Pergunta: Quantas frutas no total? -> {{"intent": "total", "products": []}}
+Pergunta: Quais frutas voces tem? -> {{"intent": "list", "products": []}}
 
 Pergunta: {question} ->
 """.strip()
+
+
+def resolve_products(value: object, available_slugs: list[str]) -> list[str]:
+    """Normaliza a lista crua da LLM em slugs validos, sem duplicatas."""
+    if isinstance(value, str):
+        value = [value]
+    if not isinstance(value, list):
+        return []
+
+    resolved: list[str] = []
+    for item in value:
+        slug = match_slug(normalize_product(item), available_slugs)
+        if slug is not None and slug not in resolved:
+            resolved.append(slug)
+
+    return resolved
+
+
+def match_slug(product: str, available_slugs: list[str]) -> str | None:
+    if product in _NULL_LIKE:
+        return None
+    if product in available_slugs:
+        return product
+    if product.endswith("s") and product[:-1] in available_slugs:
+        return product[:-1]
+    return None
+
+
+def normalize_intent(value: object) -> str:
+    if not isinstance(value, str):
+        return ""
+
+    ascii_text = _strip_accents(value).lower()
+    return re.sub(r"[^a-z_]", "", ascii_text)
 
 
 def normalize_product(value: object) -> str:
     if not isinstance(value, str):
         return ""
 
-    without_accents = unicodedata.normalize("NFKD", value)
-    ascii_text = without_accents.encode("ascii", "ignore").decode("ascii")
-    words = re.findall(r"[a-z]+", ascii_text.lower())
-
+    words = re.findall(r"[a-z]+", _strip_accents(value).lower())
     return words[0] if words else ""
+
+
+def _strip_accents(value: str) -> str:
+    without_accents = unicodedata.normalize("NFKD", value)
+    return without_accents.encode("ascii", "ignore").decode("ascii")

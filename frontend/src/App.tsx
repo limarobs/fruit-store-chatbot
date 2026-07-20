@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 
 type ChatResponse = {
   answer: string;
+  intent: string;
   product: string | null;
   quantity: number | null;
   interpreter: "llm" | "fallback";
@@ -20,7 +21,7 @@ function App() {
     {
       id: 1,
       role: "assistant",
-      text: "Oi! Pergunte sobre maca, banana, laranja, uva ou abacaxi.",
+      text: "Oi! Posso falar de quantidade, preco, o que esta acabando e o total do estoque. Ex: \"Quanto custa a banana?\"",
       interpreter: "fallback",
     },
   ]);
@@ -91,8 +92,8 @@ function App() {
         <p className="eyebrow">Loja de frutas</p>
         <h1>Chatbot de estoque</h1>
         <p className="intro">
-          Pergunte pela quantidade disponivel de maca, banana, laranja, uva ou
-          abacaxi.
+          Pergunte sobre quantidade, preco, frutas acabando ou o total do
+          estoque de maca, banana, laranja, uva ou abacaxi.
         </p>
 
         <section className="chat-window" aria-live="polite">
@@ -129,7 +130,7 @@ function App() {
             <input
               id="question"
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ex: Tem quantas macas?"
+              placeholder="Ex: Quanto custa a banana?"
               type="text"
               value={question}
             />
