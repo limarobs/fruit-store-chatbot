@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 import re
 import unicodedata
@@ -7,6 +8,8 @@ import httpx
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
@@ -34,7 +37,9 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
         response.raise_for_status()
         payload = response.json()
         content = json.loads(payload["response"])
-    except (httpx.HTTPError, KeyError, json.JSONDecodeError):
+    except (httpx.HTTPError, KeyError, json.JSONDecodeError) as error:
+        # Ollama offline, lento ou fora do formato: cai no fallback local.
+        logger.warning("LLM indisponivel, usando fallback local: %s", error)
         return None
 
     product = normalize_product(content.get("product"))
@@ -45,6 +50,7 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
     if product.endswith("s") and product[:-1] in available_slugs:
         return product[:-1]
 
+    logger.info("LLM devolveu produto fora do catalogo: %r", product)
     return None
 
 
