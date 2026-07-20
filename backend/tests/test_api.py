@@ -4,6 +4,14 @@ from app.main import app
 
 
 # testes de integracao da API usando TestClient do FastAPI
+def test_health_route_reports_ok():
+    with TestClient(app) as client:
+        response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
 def test_products_route_lists_seeded_inventory():
     with TestClient(app) as client:
         response = client.get("/products")
