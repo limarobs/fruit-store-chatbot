@@ -6,6 +6,9 @@ SQLite, React, TypeScript e LLM local via Ollama.
 ## Funcionalidades
 
 - Consulta de estoque em linguagem natural.
+- Entende varias intencoes: quantidade, preco, fruta mais barata/cara,
+  frutas acabando, total do estoque e listagem do catalogo.
+- Aceita mais de uma fruta na mesma pergunta (ex: "Tem maca e uva?").
 - Banco SQLite local com seed de frutas.
 - LLM local opcional com Ollama.
 - Fallback quando a LLM estiver indisponivel.
@@ -98,6 +101,7 @@ Resposta:
 ```json
 {
   "answer": "Temos 42 unidades de maca em estoque.",
+  "intent": "quantity",
   "product": "Maca",
   "quantity": 42,
   "interpreter": "llm"
@@ -105,7 +109,19 @@ Resposta:
 ```
 
 O campo `interpreter` indica se a pergunta foi interpretada pela LLM local
-(`llm`) ou pelo fallback deterministico (`fallback`).
+(`llm`) ou pelo fallback deterministico (`fallback`). O campo `intent` mostra
+a intencao detectada: `quantity`, `price`, `cheapest`, `expensive`,
+`low_stock`, `total` ou `list`.
+
+Outros exemplos de pergunta:
+
+```text
+Quanto custa a banana?
+Qual a fruta mais barata?
+Quais frutas estao acabando?
+Quantas frutas no total?
+Quais frutas voces tem?
+```
 
 ## Testes
 
