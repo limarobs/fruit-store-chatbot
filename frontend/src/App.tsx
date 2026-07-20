@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type ChatResponse = {
   answer: string;
@@ -15,42 +15,59 @@ type Message = {
   interpreter?: ChatResponse["interpreter"];
 };
 
+type Theme = "light" | "dark";
+
+const SUGGESTIONS = [
+  "Tem quantas maçãs?",
+  "Quanto custa a banana?",
+  "Qual a mais barata?",
+  "O que está acabando?",
+  "Quantas frutas no total?",
+];
+
+function getInitialTheme(): Theme {
+  const saved = localStorage.getItem("theme");
+  if (saved === "light" || saved === "dark") {
+    return saved;
+  }
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 function App() {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       role: "assistant",
-      text: "Oi! Posso falar de quantidade, preco, o que esta acabando e o total do estoque. Ex: \"Quanto custa a banana?\"",
+      text: "Oi! Pergunte sobre quantidade, preço, o que está acabando ou o total do estoque. \u{1F34E}",
       interpreter: "fallback",
     },
   ]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem("theme", theme);
+  }, [theme]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-
-    if (!question.trim()) {
-      setError("Digite uma pergunta sobre o estoque.");
+  async function send(text: string) {
+    const trimmed = text.trim();
+    if (!trimmed || isLoading) {
       return;
     }
 
-    const currentQuestion = question.trim();
     const userMessageId = Date.now();
-
-    setMessages((currentMessages) => [
-      ...currentMessages,
-      {
-        id: userMessageId,
-        role: "user",
-        text: currentQuestion,
-      },
+    setMessages((current) => [
+      ...current,
+      { id: userMessageId, role: "user", text: trimmed },
     ]);
     setQuestion("");
     setIsLoading(true);
@@ -59,10 +76,8 @@ function App() {
     try {
       const request = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ question: currentQuestion }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: trimmed }),
       });
 
       if (!request.ok) {
@@ -70,8 +85,8 @@ function App() {
       }
 
       const data = (await request.json()) as ChatResponse;
-      setMessages((currentMessages) => [
-        ...currentMessages,
+      setMessages((current) => [
+        ...current,
         {
           id: userMessageId + 1,
           role: "assistant",
@@ -83,64 +98,120 @@ function App() {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
       setIsLoading(false);
+      inputRef.current?.focus();
     }
   }
 
   return (
     <main className="app-shell">
-      <section className="hero-panel">
-        <p className="eyebrow">Loja de frutas</p>
-        <h1>Chatbot de estoque</h1>
-        <p className="intro">
-          Pergunte sobre quantidade, preco, frutas acabando ou o total do
-          estoque de maca, banana, laranja, uva ou abacaxi.
-        </p>
+      <div className="orb orb-1" aria-hidden="true" />
+      <div className="orb orb-2" aria-hidden="true" />
+      <div className="orb orb-3" aria-hidden="true" />
 
-        <section className="chat-window" aria-live="polite">
+      <section className="chat-card">
+        <header className="chat-header">
+          <div className="brand-mark" aria-hidden="true">
+            {"\u{1F34F}"}
+          </div>
+          <div className="brand-text">
+            <h1>Estoque · AI</h1>
+            <span className="brand-status">
+              <i className="status-dot" aria-hidden="true" />
+              Assistente online
+            </span>
+          </div>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={() => setTheme((value) => (value === "dark" ? "light" : "dark"))}
+            aria-label={theme === "dark" ? "Ativar tema claro" : "Ativar tema escuro"}
+            title="Alternar tema"
+          >
+            {theme === "dark" ? "☀️" : "\u{1F319}"}
+          </button>
+        </header>
+
+        <div className="chat-window" aria-live="polite">
           {messages.map((message) => (
-            <article
-              className={`message-bubble ${message.role}`}
-              key={message.id}
-            >
-              <span>{message.role === "user" ? "Voce" : "Assistente"}</span>
-              <p>{message.text}</p>
-              {message.role === "assistant" && message.interpreter ? (
-                <strong>
-                  {message.interpreter === "llm"
-                    ? "LLM local"
-                    : "Fallback local"}
-                </strong>
-              ) : null}
-            </article>
+            <div className={`message-row ${message.role}`} key={message.id}>
+              <div className="avatar" aria-hidden="true">
+                {message.role === "user" ? "\u{1F9D1}" : "\u{1F916}"}
+              </div>
+              <div className="bubble">
+                <p>{message.text}</p>
+                {message.role === "assistant" && message.interpreter ? (
+                  <span className={`badge ${message.interpreter}`}>
+                    {message.interpreter === "llm" ? "\u{1F9E0} LLM local" : "⚙️ Fallback"}
+                  </span>
+                ) : null}
+              </div>
+            </div>
           ))}
 
           {isLoading ? (
-            <article className="message-bubble assistant">
-              <span>Assistente</span>
-              <p>Consultando estoque...</p>
-            </article>
+            <div className="message-row assistant">
+              <div className="avatar" aria-hidden="true">
+                {"\u{1F916}"}
+              </div>
+              <div className="bubble typing" aria-label="Consultando estoque">
+                <span />
+                <span />
+                <span />
+              </div>
+            </div>
           ) : null}
 
           <div ref={chatEndRef} />
-        </section>
+        </div>
 
-        <form className="chat-form" onSubmit={handleSubmit}>
-          <label htmlFor="question">Pergunta</label>
+        <form
+          className="composer"
+          onSubmit={(event) => {
+            event.preventDefault();
+            send(question);
+          }}
+        >
+          <div className="chips">
+            {SUGGESTIONS.map((suggestion) => (
+              <button
+                type="button"
+                className="chip"
+                key={suggestion}
+                disabled={isLoading}
+                onClick={() => send(suggestion)}
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+
+          <label className="visually-hidden" htmlFor="question">
+            Pergunta
+          </label>
           <div className="input-row">
             <input
               id="question"
+              ref={inputRef}
+              autoComplete="off"
               onChange={(event) => setQuestion(event.target.value)}
-              placeholder="Ex: Quanto custa a banana?"
+              placeholder="Pergunte sobre o estoque..."
               type="text"
               value={question}
             />
-            <button disabled={isLoading} type="submit">
-              {isLoading ? "Consultando..." : "Perguntar"}
+            <button
+              className="send-btn"
+              disabled={isLoading}
+              type="submit"
+              aria-label="Enviar pergunta"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
             </button>
           </div>
-        </form>
 
-        {error ? <p className="feedback error">{error}</p> : null}
+          {error ? <p className="feedback error">{error}</p> : null}
+        </form>
       </section>
     </main>
   );
