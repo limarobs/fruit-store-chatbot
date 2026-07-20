@@ -31,6 +31,10 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
                 "prompt": prompt,
                 "stream": False,
                 "format": "json",
+                # temperatura 0 deixa a extracao deterministica; keep_alive
+                # mantem o modelo carregado e evita recarga a cada pergunta.
+                "options": {"temperature": 0},
+                "keep_alive": "10m",
             },
             timeout=45,
         )
@@ -43,6 +47,10 @@ def extract_product_with_llm(question: str, available_slugs: list[str]) -> str |
         return None
 
     product = normalize_product(content.get("product"))
+
+    # O modelo as vezes devolve a string "null"/"none" em vez de JSON null.
+    if product in ("", "null", "none", "nenhum", "nenhuma"):
+        return None
 
     if product in available_slugs:
         return product
@@ -65,13 +73,19 @@ def build_prompt(question: str, available_slugs: list[str]) -> str:
     options = ", ".join(available_slugs)
 
     return f"""
-Voce interpreta perguntas de estoque de uma loja de frutas.
-Retorne apenas JSON valido no formato {{"product": string | null}}.
-Use apenas uma destas frutas: {options}.
-Se a pergunta for apenas o nome de uma fruta, com ou sem pontuacao, retorne essa fruta.
-Se a pergunta nao mencionar uma fruta da lista, use null.
+Voce identifica qual fruta aparece em uma pergunta de estoque.
+Responda SOMENTE com JSON no formato {{"product": "<fruta>"}} ou {{"product": null}}.
+A fruta deve ser exatamente uma destas, sempre no singular: {options}.
+Converta plural para singular (ex.: "bananas" -> "banana", "macas" -> "maca").
+Se nenhuma fruta da lista aparecer, use o valor JSON null (sem aspas).
 
-Pergunta: {question}
+Exemplos:
+Pergunta: Tem quantas bananas? -> {{"product": "banana"}}
+Pergunta: Quantas laranjas tem no estoque? -> {{"product": "laranja"}}
+Pergunta: uva -> {{"product": "uva"}}
+Pergunta: Tem quantas mangas? -> {{"product": null}}
+
+Pergunta: {question} ->
 """.strip()
 
 
